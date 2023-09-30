@@ -1,0 +1,1 @@
+This repository and the code maintained within were created for submission to the edX HarvardX - Data Science program. If you are participating in the edX HarvardX - Data Science program, all work must be your own, and you have already agreed to abide by the [edX Honor Code](https://www.edx.org/edx-terms-service). Thanks!
