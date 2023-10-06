@@ -24,12 +24,12 @@ if(!file.exists(dl))
 # Extract the ratings data
 ratings_file <- "data/ml-10M100K/ratings.dat"
 if(!file.exists(ratings_file))
-  unzip(dl, ratings_file)
+  unzip(dl, str_sub(ratings_file, 6), exdir = "data")
 
 # Extract the movies data
 movies_file <- "data/ml-10M100K/movies.dat"
 if(!file.exists(movies_file))
-  unzip(dl, movies_file)
+  unzip(dl, str_sub(movies_file, 6), exdir = "data")
 
 # Read the contents of the "ratings.dat" file into a data frame
 ratings <- as.data.frame(str_split(read_lines(ratings_file), fixed("::"), simplify = TRUE),
