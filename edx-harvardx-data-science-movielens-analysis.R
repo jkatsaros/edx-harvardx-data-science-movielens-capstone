@@ -4,11 +4,16 @@
 # Jason Katsaros
 ##########################################################
 
-if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
-if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
-if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
-if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
-if(!require(recommenderlab)) install.packages("recommenderlab", repos = "http://cran.us.r-project.org")
+if (!require(tidyverse))
+  install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if (!require(caret))
+  install.packages("caret", repos = "http://cran.us.r-project.org")
+if (!require(lubridate))
+  install.packages("lubridate", repos = "http://cran.us.r-project.org")
+if (!require(ggplot2))
+  install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if (!require(recommenderlab))
+  install.packages("recommenderlab", repos = "http://cran.us.r-project.org")
 
 library(tidyverse)
 library(caret)
@@ -57,7 +62,8 @@ edx <- edx %>% mutate(
   thriller = grepl("Thriller", genres, ignore.case = TRUE), # Is this a "Thriller" movie?
   war = grepl("War", genres, ignore.case = TRUE), # Is this a "War" movie?
   western = grepl("Western", genres, ignore.case = TRUE) # Is this a "Western" movie?
-) %>% select(-c(timestamp, genres)) # Exclude "dirty" columns in favor of new columns
+) %>%
+  select(-c(timestamp, genres)) # Exclude "dirty" columns in favor of new columns
 
 # Save the tidied edx data set
 save(edx, file = "rda/edx.rda")

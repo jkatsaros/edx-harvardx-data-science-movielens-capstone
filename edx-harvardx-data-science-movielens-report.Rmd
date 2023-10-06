@@ -66,11 +66,16 @@ To start off this capstone project, I was given the following R script. This R s
 
 # Note: this process could take a couple of minutes
 
-if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
-if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
-if(!require(lubridate)) install.packages("lubridate", repos = "http://cran.us.r-project.org")
-if(!require(ggplot2)) install.packages("ggplot2", repos = "http://cran.us.r-project.org")
-if(!require(recommenderlab)) install.packages("recommenderlab", repos = "http://cran.us.r-project.org")
+if (!require(tidyverse))
+  install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if (!require(caret))
+  install.packages("caret", repos = "http://cran.us.r-project.org")
+if (!require(lubridate))
+  install.packages("lubridate", repos = "http://cran.us.r-project.org")
+if (!require(ggplot2))
+  install.packages("ggplot2", repos = "http://cran.us.r-project.org")
+if (!require(recommenderlab))
+  install.packages("recommenderlab", repos = "http://cran.us.r-project.org")
 
 library(tidyverse)
 library(caret)
@@ -196,7 +201,8 @@ edx <- edx %>% mutate(
   thriller = grepl("Thriller", genres, ignore.case = TRUE), # Is this a "Thriller" movie?
   war = grepl("War", genres, ignore.case = TRUE), # Is this a "War" movie?
   western = grepl("Western", genres, ignore.case = TRUE) # Is this a "Western" movie?
-) %>% select(-c(timestamp, genres)) # Exclude "dirty" columns in favor of new columns
+) %>%
+  select(-c(timestamp, genres)) # Exclude "dirty" columns in favor of new columns
 ```
 
 Currently, I have the data split out into the `edx` data set and a `final_holdout_test` set. However, to reserve the integrity of the `final_holdout_test` data set, I will split the `edx` data set out even further into another training and test set. While splitting the `edx` data set, I make sure to only include movies and users in the `test_set` that are also included in the `train_set` to avoid any potential difficulties in the future. I use the `caret`[@caret] package here to split the `edx` data set into train and test sets, placing 30% of my rows in the `train_set` and the remaining 70% in the `test_set`.
