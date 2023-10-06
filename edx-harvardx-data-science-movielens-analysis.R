@@ -4,6 +4,8 @@
 # Jason Katsaros
 ##########################################################
 
+if (!require(renv))
+  install.packages("renv", repos = "http://cran.us.r-project.org")
 if (!require(tidyverse))
   install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 if (!require(caret))
@@ -15,11 +17,15 @@ if (!require(ggplot2))
 if (!require(recommenderlab))
   install.packages("recommenderlab", repos = "http://cran.us.r-project.org")
 
+library(renv)
 library(tidyverse)
 library(caret)
 library(lubridate)
 library(ggplot2)
 library(recommenderlab)
+
+# Take a snapshot
+renv::snapshot()
 
 # Load in the edx data
 load("rda/edx.rda")
