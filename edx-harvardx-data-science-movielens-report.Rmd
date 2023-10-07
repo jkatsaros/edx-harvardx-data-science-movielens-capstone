@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output:
   pdf_document:
     toc: true
-    toc_depth: 3
+    toc_depth: 4
     number_sections: true
 bibliography: references.bib
 ---
