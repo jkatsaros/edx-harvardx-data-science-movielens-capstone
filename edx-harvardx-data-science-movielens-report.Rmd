@@ -71,7 +71,11 @@ To start off this capstone project, I was given the following R script. This R s
 if (!require(renv))
   install.packages("renv", repos = "http://cran.us.r-project.org")
 if (!require(tidyverse))
-  install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+  install.packages(
+    "tidyverse",
+    repos = "http://cran.us.r-project.org",
+    dependencies = TRUE
+  )
 if (!require(caret))
   install.packages("caret", repos = "http://cran.us.r-project.org")
 if (!require(lubridate))
@@ -186,7 +190,7 @@ head(edx, 5)
 summary(edx)
 ```
 
-I want to note before moving on that the median of all the ratings across all reviews in the MovieLens[@MovieLens] data is greater than the mean of all the ratings. This means that the ratings (out of 5 stars) are skewed towards the upper end of the scale, which can also be represented visually with this plot.
+I want to note before moving on that the median of all the ratings across all reviews in the MovieLens[@MovieLens] data is greater than the mean of all the ratings. This means that the ratings (out of 5 stars) have a left skew, which can also be represented visually with this plot.
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE}
 # Visualize the distribution of the ratings
