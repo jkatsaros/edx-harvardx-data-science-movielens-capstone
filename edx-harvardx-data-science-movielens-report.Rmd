@@ -24,10 +24,10 @@ Recently, the company I currently work for put me in an interesting (albeit awkw
 
 ## Overview
 
-As a part of completing this program, I am required to construct two capstone projects that encompass the knowledge I have practiced and gained along the way. This project is the first of the two. The goal of this capstone project is to leverage the MovieLens[@MovieLens] data set and formulate a machine learning algorithm to produce movie recommendations based on user ratings. More specifically, the algorithm that I produce must target a Root Mean Squared Error result of `0.86490` or less. Root Mean Squared Error (or RMSE for short) is a loss function used to evaluate how well an algorithm predicts outcomes. Creating a model that minimizes the RMSE indicates that the model is making accurate predictions. Mathematically, RMSE is defined as:
+As a part of completing this program, I am required to construct two capstone projects that encompass the knowledge I have gained and practiced. This project is the first of the two. The goal of this capstone project is to leverage the MovieLens[@MovieLens] data set and formulate a machine learning algorithm to produce movie recommendations based on user ratings. More specifically, the algorithm that I produce must target a Root Mean Squared Error result of `0.86490` or less. Root Mean Squared Error (or RMSE for short) is a loss function used to evaluate how well an algorithm predicts outcomes. Creating a model that minimizes the RMSE indicates that the model is making acceptably accurate predictions. Mathematically, RMSE is defined as:
 
 $$ RMSE = \sqrt{MSE} = \sqrt{\frac{1}{N}\displaystyle\sum_{i=1}^N (\hat{y}_{i} - y_{i})^{2}} $$
-where $\hat{y}$ is a prediction, $y$ is an observed outcome, $N$ is the number of observations made, and $i$ is the current prediction/observation in the summation. We can calculate the RMSE with the following R code:
+where $\hat{y}$ is a predicted outcome, $y$ is an observed outcome, $N$ is the number of observations made, and $i$ is the current prediction/observation in the summation. We can calculate the RMSE with the following R code:
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE}
 RMSE <- function(observed, prediction) {
@@ -41,9 +41,11 @@ The CAReT[@caret], or Classification and Regression Training, R package also con
 ?caret::RMSE()
 ```
 
+I decided to use the `caret::RMSE()` function because it is tried and true and will ultimately simplify my R code.
+
 Over the course of this capstone, I will split the MovieLens[@MovieLens] data set into train and test sets, iteratively design a model using the train set which I will then use to make predictions on movie recommendations in the test set. I will evaluate the RMSEs of these predictions against the actual ratings in the test set, demonstrating the evolution (and hopeful improvement) of the model at making movie recommendations based on user ratings. I will also conduct some exploratory analysis, integrating seasonal movies into the model as well as investigating the `RecommenderLab`[@recommenderlab] R package, which was designed around using machine learning to make recommendations. After all of that, I will evaluate the final model against the `final_holdout_test` set to see how well I did at the project.
 
-# Data
+# Data and Analysis
 
 ## Set Up
 
@@ -86,9 +88,6 @@ library(lubridate)
 library(ggplot2)
 library(recommenderlab)
 
-# Take a snapshot
-renv::snapshot()
-
 # MovieLens 10M dataset:
 # https://grouplens.org/datasets/movielens/10m/
 # http://files.grouplens.org/datasets/movielens/ml-10m.zip
@@ -111,8 +110,14 @@ if(!file.exists(movies_file))
   unzip(dl, movies_file)
 
 # Read the contents of the "ratings.dat" file into a data frame
-ratings <- as.data.frame(str_split(read_lines(ratings_file), fixed("::"), simplify = TRUE),
-                         stringsAsFactors = FALSE)
+ratings <- as.data.frame(
+  str_split(
+    read_lines(ratings_file),
+    fixed("::"),
+    simplify = TRUE
+  ),
+  stringsAsFactors = FALSE
+)
 # Set the column names for the ratings data frame
 colnames(ratings) <- c("userId", "movieId", "rating", "timestamp")
 # Set the data types of the information in the ratings data frame
@@ -123,8 +128,14 @@ ratings <- ratings %>%
          timestamp = as.integer(timestamp))
 
 # Read the contents of the "movies.dat" file into a data frame
-movies <- as.data.frame(str_split(read_lines(movies_file), fixed("::"), simplify = TRUE),
-                        stringsAsFactors = FALSE)
+movies <- as.data.frame(
+  str_split(
+    read_lines(movies_file),
+    fixed("::"),
+    simplify = TRUE
+  ),
+  stringsAsFactors = FALSE
+)
 # Set the column names for the movies data frame
 colnames(movies) <- c("movieId", "title", "genres")
 # Set the data types of the information in the movies data frame
@@ -153,19 +164,35 @@ edx <- rbind(edx, removed)
 rm(dl, ratings, movies, test_index, temp, movielens, removed)
 
 # Save the edx data to an RData file
-save(edx, file = "rda/edx.rda")
+base::save(edx, file = "rda/edx.rda")
 
 # Save the final_holdout_test data to an RData file
-save(final_holdout_test, file = "rda/final_holdout_test.rda")
+base::save(final_holdout_test, file = "rda/final_holdout_test.rda")
 ```
 
-Peeking at the `edx` data set, we can see that there are 69,878 users who reviewed 10,677 movies with six different features I can use to make predictions on: The unique identifier of a user who made a movie review with MovieLens[@MovieLens] `(userId)`, the unique identifier of a movie within MovieLens `(movieId)`, the rating the user gave the movie (out of 5 stars, `rating`), a time stamp of when the user made the movie review (`timestamp`), the title of the movie the user reviewed (`title`), and the genres the movie belongs to within MovieLens[@MovieLens] (separated by `|`, `genres`).
+Peeking at the `edx` data set, we can see that there are 69,878 users who reviewed 10,677 movies with six different features I can use to make predictions on.
+
+1. The unique identifier of a user who made a movie review with MovieLens[@MovieLens] `(userId)`
+2. The unique identifier of a movie within MovieLens `(movieId)`
+3. The rating the user gave the movie (out of 5 stars, `rating`)
+4. A time stamp of when the user made the movie review (`timestamp`)
+5. The title of the movie the user reviewed (`title`)
+6. The genres the movie belongs to within MovieLens[@MovieLens] (separated by `|`, `genres`).
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE}
 # Visualize the general contents of the edx data set
 edx %>% summarize(n_distinct(userId), n_distinct(movieId))
 head(edx, 5)
 summary(edx)
+```
+
+I want to note before moving on that the median of all the ratings across all reviews in the MovieLens[@MovieLens] data is greater than the mean of all the ratings. This means that the ratings (out of 5 stars) are skewed towards the upper end of the scale, which can also be represented visually with this plot.
+
+```{r, echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE}
+# Visualize the distribution of the ratings
+edx %>%
+  ggplot(aes(rating)) +
+  geom_histogram()
 ```
 
 This information will be useful for analyzing the MovieLens[@MovieLens] data as well as creating and testing my algorithms. First, however, I want to do a little clean up of the data HarvardX has presented me.
@@ -230,7 +257,7 @@ test_set <- test_set %>%
   semi_join(train_set, by = "userId")
 ```
 
-# Analysis
+# Model Testing and Results
 
 After pre-processing the `edx` data set and splitting into new train and test sets, I am ready to begin creating models that predict movie ratings. Please note that over the iterations of my analysis, instead of using the `caret`[@caret] package, I will simply approximate a linear regression model as there is too much data for my personal computer to handle. If I was able to use the `caret`[@caret] package to train models and make predictions against those models, it would use the following function.
 
@@ -239,7 +266,20 @@ After pre-processing the `edx` data set and splitting into new train and test se
 getModelInfo("glm")
 ```
 
-The `glm` in this instance stands for "Generalized Linear Model". The "Generalized Linear Model" doesn't have any tuning parameters I could use to tweak the underlying operations the `caret`[@caret] package is conducting for me, making using the `caret`[@caret] package for this capstone particularly taxing on my system. I will go into detail about this limitation later on in this report. For now, though, let us continue with the analysis and building of models.
+The `glm` in this instance stands for "Generalized Linear Model". The "Generalized Linear Model" doesn't have any tuning parameters I could use to tweak the underlying operations the `caret`[@caret] package is conducting for me. This means that using the `caret`[@caret] package for this capstone particularly taxing on my system. I will go into detail about this limitation later on in this report. For now, though, let us continue with the analysis and building of models.
+
+In this capstone, I will construct the following  models and evaluate how well each model makes predictions on movie recommendations within the MovieLens[@MovieLens] data:
+
+1. Naive Model
+2. Movie Effects Model
+3. Movie and User Effects Model
+4. Regularized Movie Effects Model
+5. Regularized User Effects Model
+6. Combined Regulared Effects Model
+7. Regularized Model With Seasonality
+8. RecommenderLab[@recommenderlab] Models
+
+To document how each model compares against the others, I will display a running table of each model's RMSE throughout this report.
 
 ## Naive Model
 
@@ -262,7 +302,7 @@ rmse_results <- data.frame(method = "Naive Model", RMSE = naive_rmse)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 As we can see, the average RMSE is not very good, about `1.06`. I can definitely create a better model, one which takes at least some of the features into account.
@@ -295,11 +335,17 @@ movie_rmse <- caret::RMSE(test_set$rating, movie_predictions)
 movie_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Movie Effects Model", RMSE = movie_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Movie Effects Model",
+    RMSE = movie_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 An RMSE of `0.94` is better than the naive RMSE, as it is closer to `0`. I am on the right track, but there is still work to do.
@@ -331,11 +377,17 @@ movie_and_user_rmse <- RMSE(test_set$rating, movie_and_user_predictions)
 movie_and_user_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Movie and User Effects Model", RMSE = movie_and_user_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Movie and User Effects Model",
+    RMSE = movie_and_user_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 An RMSE of `0.88` is even better than the movie RMSE. With an RMSE target of `0.86490` or less, I am so close to achieving the goal set out by this capstone.
@@ -399,11 +451,17 @@ regularized_movie_rmse <- caret::RMSE(filtered_test_set$rating, regularized_movi
 regularized_movie_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Regularized Movie Effects Model", RMSE = regularized_movie_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Regularized Movie Effects Model",
+    RMSE = regularized_movie_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 Comparing this RMSE to the previous `Movie Model` RMSE, we can see that it is an improvement over the previous model, although very slight.
@@ -444,21 +502,35 @@ filtered_test_set <- test_set %>%
 movie_and_regularized_user_predictions <- filtered_test_set %>%
   left_join(movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(movie_and_regularized_user_prediction = average_rating + movie_average + regularized_user_average) %>%
+  mutate(
+    movie_and_regularized_user_prediction =
+      average_rating +
+      movie_average +
+      regularized_user_average
+  ) %>%
   pull(movie_and_regularized_user_prediction)
 
 # Compare the predicted ratings in the test set
 # against the actual ratings in the test set
 # First we need to filter the test set of the users we removed previously
-movie_and_regularized_user_rmse <- caret::RMSE(filtered_test_set$rating, movie_and_regularized_user_predictions)
+movie_and_regularized_user_rmse <- caret::RMSE(
+  filtered_test_set$rating,
+  movie_and_regularized_user_predictions
+)
 movie_and_regularized_user_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Movie and Regularized User Effects Model", RMSE = movie_and_regularized_user_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Movie and Regularized User Effects Model",
+    RMSE = movie_and_regularized_user_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 Regularizing the users in our data has a much greater impact on our RMSE, which we will also be able to see once I combine both regularized models into one complete model.
@@ -481,7 +553,12 @@ regularized_test_set <- test_set %>%
 regularized_predictions <- regularized_test_set %>%
   left_join(regularized_movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(regularized_prediction = average_rating + regularized_movie_average + regularized_user_average) %>%
+  mutate(
+    regularized_prediction =
+      average_rating +
+      regularized_movie_average +
+      regularized_user_average
+  ) %>%
   pull(regularized_prediction)
 
 # Compare the predicted ratings in the test set
@@ -490,16 +567,24 @@ regularized_rmse <- caret::RMSE(regularized_test_set$rating, regularized_predict
 regularized_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Regularized Model", RMSE = regularized_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Regularized Model",
+    RMSE = regularized_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 Combining both regularized models achieves the best RMSE yet. In fact, with an RMSE of `0.84`, this puts me below the target RMSE for this capstone. I would, however, still like to do some exploratory analysis, both to see if I can improve upon this model by taking more features into account but also to learn about the MovieLens[@MovieLens] data in general.
 
-### Regularized With Seasonality Model
+### Exploratory Model Testing and Analysis
+
+#### Regularized With Seasonality Model
 
 One avenue I would like to investigate when it comes to movie recommendations is seasonality. For example, I am conducting this capstone project in October, the month where people tend to watch more movies from the Horror genre. Another example is the viewership increase of holiday-related movies in the months of November and December. While the MovieLens[@MovieLens] data set does not have an explicit "Holiday" genre, I do believe this is an idea worth investigating. To prove this, I will conduct a Chi-Squared test of movies reviewed (and not reviewed) in October against Horror movies (and not Horror movies).
 
@@ -517,13 +602,23 @@ not_horror_not_october <- train_set %>%
 horror_not_october <- train_set %>% 
   filter(month(date_reviewed) != "10" & horror == TRUE)
 
-horror_movie_matrix <- matrix(c(nrow(horror_october), nrow(not_horror_october), nrow(horror_not_october), nrow(not_horror_not_october)), ncol = 2)
+horror_movie_matrix <- matrix(
+  c(
+    nrow(horror_october),
+    nrow(not_horror_october),
+    nrow(horror_not_october),
+    nrow(not_horror_not_october)
+  ),
+  ncol = 2
+)
+colnames(horror_movie_matrix) <- c("October", "Not October")
+rownames(horror_movie_matrix) <- c("Horror", "Not Horror")
 horror_movie_matrix
 
 chisq.test(horror_movie_matrix)
 ```
 
-As evidenced by the Chi-Squared test above, with an incredibly small `p-value`, this is something worth exploring. To do this, I created a very slight weight for movies related to the Horror genre if the current date is within October. I only included a very slight weight here because seasonality is not a preference that reaches all movie viewers, due to culture or personal preference. Again, I would like to conduct this experiment against other movies and genres within the MovieLens[@MovieLens] data set, but the current state of the MovieLens[@MovieLens] data set does not support this. In the future, it would be a great improvement to include some sort of "Holiday" genre or to create a mapping between months of the year and movie genre preference to create some sort of weight to apply to the model.
+As evidenced by the Chi-Squared test above, with an incredibly small `p-value`, movies reviewed in October and the Horror movie genre are not independent factors. In order to explore this, I created a very slight weight for movies related to the Horror genre if the current date is within October. I only included a very slight weight here because seasonality is not a preference that reaches all movie viewers, due to culture or personal preference. Again, I would like to conduct this experiment against other movies and genres within the MovieLens[@MovieLens] data set, but the current state of the MovieLens[@MovieLens] data set does not support this. In the future, it would be a great improvement to include some sort of "Holiday" genre or to create a mapping between months of the year and movie genre preference to create some sort of weight to apply to the model.
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE}
 # Regularized With Seasonality Model
@@ -532,7 +627,15 @@ As evidenced by the Chi-Squared test above, with an incredibly small `p-value`, 
 regularized_seasonal_movie_model <- train_set %>%
   group_by(movieId) %>%
   filter(n() > 1) %>%
-  summarize(regularized_movie_average = mean(rating - average_rating - ifelse(month(now()) == 10 & horror, 0.125, 0)))
+  summarize(
+    regularized_movie_average =
+      mean(rating -
+             average_rating -
+             ifelse(month(now()) == 10 &
+                      horror, 0.125, 0
+              )
+      )
+  )
 
 # Filter the test set of the movies and users removed previously
 regularized_seasonal_test_set <- test_set %>%
@@ -544,25 +647,39 @@ regularized_seasonal_test_set <- test_set %>%
 regularized_seasonal_predictions <- regularized_seasonal_test_set %>%
   left_join(regularized_seasonal_movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(regularized_seasonal_prediction = average_rating + regularized_movie_average + regularized_user_average) %>%
+  mutate(
+    regularized_seasonal_prediction =
+      average_rating +
+      regularized_movie_average +
+      regularized_user_average
+  ) %>%
   pull(regularized_seasonal_prediction)
 
 # Compare the predicted ratings in the test set
 # against the actual ratings in the test set
-regularized_seasonal_rmse <- caret::RMSE(regularized_seasonal_test_set$rating, regularized_seasonal_predictions)
+regularized_seasonal_rmse <- caret::RMSE(
+  regularized_seasonal_test_set$rating,
+  regularized_seasonal_predictions
+)
 regularized_seasonal_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Regularized With Seasonality Model", RMSE = regularized_seasonal_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Regularized With Seasonality Model",
+    RMSE = regularized_seasonal_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 While this does increase the overall RMSE by a slight amount, I do believe that including more features in the model is useful in the long run. With some fine tuning, I believe the genre and month features will be a great addition to the final model.
 
-## RecommenderLab
+#### RecommenderLab
 
 Mentioned, but not elaborated upon, in the HarvardX course was the `recommenderlab`[@recommenderlab] package, whose purpose is to provide a library of R functions useful for creating recommendation systems, which is perfect to explore for this capstone project. While I was not able to use the caret[@caret] package over the course of this capstone due to hardware limitations (which I will elaborate on later on in this report), I am able to use the `recommenderlab`[@recommenderlab] package to create a model, make predictions based on said model, and ultimately evaluate the model using the RMSE loss function.
 
@@ -641,7 +758,7 @@ recommenderlab_error <- calcPredictionAccuracy(
 )
 ```
 
-The above R code I use the `User-based Collaborative Filtering` algorithm provided through the `r`ecommenderlab`[@recommenderlab] package. `User-based Collaborative Filtering` is a technique that attempts to predict an item (in this case, a movie) that a test user might like based on a ratings system (in this case, the five star system) where other users have already given said items ratings. In `User-based Collaborative Filtering` models, the algorithm tries to find users that like similar items, then create a prediction based on those groupings. In the R code above, I designated four out of five stars to be a good rating for a movie, which `recommenderlab`[@recommenderlab] will take into account when creating and evaluating the model. The RMSEs achieved by this model are shown below.
+The above R code I use the `User-based Collaborative Filtering` algorithm provided through the `recommenderlab`[@recommenderlab] package. `User-based Collaborative Filtering` is a technique that attempts to predict an item (in this case, a movie) that a test user might like based on a ratings system (in this case, the five star system) where other users have already given said items ratings. In `User-based Collaborative Filtering` models, the algorithm tries to find users that like similar items, then create a prediction based on those groupings. In the R code above, I designated four out of five stars to be a good rating for a movie, which `recommenderlab`[@recommenderlab] will take into account when creating and evaluating its different models. `recommenderlab`[@recommenderlab] will automatically construct multiple models with varying groups of similar users to make predictions on, which is why there are several lines of output below. The first column in the output is the number of similar grouped users. The RMSEs achieved by each of these models are shown below.
 
 ```{r, echo = FALSE, message = FALSE, warning = FALSE, eval = TRUE}
 # Compare the predicted ratings in the test set
@@ -663,7 +780,7 @@ data.frame(
 ) %>%
   ggplot(aes(rmse)) +  
   geom_histogram(aes(y = ..density..)) +
-  labs(title = 'UBCF RMSE on Predicted Recommendations Per Test User')
+  labs(title = 'UBCF RMSE Distribution on Predicted Recommendations Per Test User')
 ```
 
 As demonstrated by the plot above, it is possible to achieve a great RMSE with a model for movie recommendations using the `recommenderlab`[@recommenderlab] package, and it is definitely worth investigating for anyone pursuing a recommendation problem.
@@ -680,7 +797,7 @@ It is now time to use the model I constructed over the course of this capstone a
 
 ```{r, echo = TRUE, message = FALSE, warning = FALSE, eval = TRUE}
 # Load in the edx data
-load("rda/final_holdout_test.rda")
+base::load("rda/final_holdout_test.rda")
 
 # Filter the final holdout test set
 # just like the regular test set
@@ -688,12 +805,19 @@ filtered_final_holdout_test <- final_holdout_test %>%
   semi_join(regularized_movie_model, by = "movieId") %>%
   semi_join(regularized_user_model, by = "userId")
 
-# Join the regularized movie model and the regularized user model to the final holdout test set to predict
+# Join the regularized movie model
+# and the regularized user model
+# to the final holdout test set to predict
 # the rating of movies in the final holdout test set
 final_predictions <- filtered_final_holdout_test %>%
   left_join(regularized_movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(final_prediction = average_rating + regularized_movie_average + regularized_user_average) %>%
+  mutate(
+    final_prediction =
+      average_rating +
+      regularized_movie_average +
+      regularized_user_average
+  ) %>%
   pull(final_prediction)
 
 # Compare the predicted ratings in the test set
@@ -702,11 +826,17 @@ final_rmse <- caret::RMSE(filtered_final_holdout_test$rating, final_predictions)
 final_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Final Model", RMSE = final_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Final Model",
+    RMSE = final_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 ```
 
 It looks like this algorithm is good to go. From a naive model to a fully fledged regression, the final model achieves the goal of this capstone project.

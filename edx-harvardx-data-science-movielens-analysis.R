@@ -28,7 +28,7 @@ library(recommenderlab)
 renv::snapshot()
 
 # Load in the edx data
-load("rda/edx.rda")
+base::load("rda/edx.rda")
 
 # Function to calculate the Root Mean Squared Error (RMSE)
 RMSE <- function(prediction, observed) {
@@ -39,6 +39,11 @@ RMSE <- function(prediction, observed) {
 edx %>% summarize(n_distinct(userId), n_distinct(movieId))
 head(edx, 5)
 summary(edx)
+
+# Visualize the distribution of the ratings
+edx %>%
+  ggplot(aes(rating)) +
+  geom_histogram()
 
 # Get a list of unique genres across all movies
 # To use in mutating the edx data set
@@ -72,7 +77,7 @@ edx <- edx %>% mutate(
   select(-c(timestamp, genres)) # Exclude "dirty" columns in favor of new columns
 
 # Save the tidied edx data set
-save(edx, file = "rda/edx.rda")
+base::save(edx, file = "rda/edx.rda")
 
 # Create training and testing partitions of the edx data
 # These sets are separate from the final_holdout_test data
@@ -90,8 +95,8 @@ test_set <- test_set %>%
   semi_join(train_set, by = "userId")
 
 # Save the train_set and test_set data to RData files
-save(train_set, file = "rda/train_set.rda")
-save(test_set, file = "rda/test_set.rda")
+base::save(train_set, file = "rda/train_set.rda")
+base::save(test_set, file = "rda/test_set.rda")
 
 # Naive Model
 # Assume that all users rate all movies the same
@@ -109,7 +114,7 @@ rmse_results <- data.frame(method = "Naive Model", RMSE = naive_rmse)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 
 # Movie Effect Model
 # Take the average rating across all movies in the train set
@@ -134,11 +139,17 @@ movie_rmse <- caret::RMSE(test_set$rating, movie_predictions)
 movie_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Movie Effects Model", RMSE = movie_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Movie Effects Model",
+    RMSE = movie_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 
 # Movie and User Effect Model
 # Join the previously created movie model to the train set by "movieId"
@@ -162,11 +173,17 @@ movie_and_user_rmse <- caret::RMSE(test_set$rating, movie_and_user_predictions)
 movie_and_user_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Movie and User Effects Model", RMSE = movie_and_user_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Movie and User Effects Model",
+    RMSE = movie_and_user_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 
 # Regularized Movie and User Effects Model
 
@@ -214,11 +231,17 @@ regularized_movie_rmse <- caret::RMSE(filtered_test_set$rating, regularized_movi
 regularized_movie_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Regularized Movie Effects Model", RMSE = regularized_movie_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Regularized Movie Effects Model",
+    RMSE = regularized_movie_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 
 # Movie and Regularized User Effects Model
 # Create the user model again,
@@ -238,21 +261,35 @@ filtered_test_set <- test_set %>%
 movie_and_regularized_user_predictions <- filtered_test_set %>%
   left_join(movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(movie_and_regularized_user_prediction = average_rating + movie_average + regularized_user_average) %>%
+  mutate(
+    movie_and_regularized_user_prediction =
+      average_rating +
+      movie_average +
+      regularized_user_average
+  ) %>%
   pull(movie_and_regularized_user_prediction)
 
 # Compare the predicted ratings in the test set
 # against the actual ratings in the test set
 # First we need to filter the test set of the users we removed previously
-movie_and_regularized_user_rmse <- caret::RMSE(filtered_test_set$rating, movie_and_regularized_user_predictions)
+movie_and_regularized_user_rmse <- caret::RMSE(
+  filtered_test_set$rating,
+  movie_and_regularized_user_predictions
+)
 movie_and_regularized_user_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Movie and Regularized User Effects Model", RMSE = movie_and_regularized_user_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Movie and Regularized User Effects Model",
+    RMSE = movie_and_regularized_user_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 
 # Regularized Model
 # Combine the two regularized models above
@@ -267,7 +304,12 @@ regularized_test_set <- test_set %>%
 regularized_predictions <- regularized_test_set %>%
   left_join(regularized_movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(regularized_prediction = average_rating + regularized_movie_average + regularized_user_average) %>%
+  mutate(
+    regularized_prediction =
+      average_rating +
+      regularized_movie_average +
+      regularized_user_average
+  ) %>%
   pull(regularized_prediction)
 
 # Compare the predicted ratings in the test set
@@ -276,11 +318,17 @@ regularized_rmse <- caret::RMSE(regularized_test_set$rating, regularized_predict
 regularized_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Regularized Model", RMSE = regularized_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Regularized Model",
+    RMSE = regularized_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 
 # Some movies recommendations should be weighted slightly seasonally
 # as some users will prefer to watch seasonal movies at appropriate times of the year,
@@ -295,7 +343,17 @@ not_horror_not_october <- train_set %>%
 horror_not_october <- train_set %>% 
   filter(month(date_reviewed) != "10" & horror == TRUE)
 
-horror_movie_matrix <- matrix(c(nrow(horror_october), nrow(not_horror_october), nrow(horror_not_october), nrow(not_horror_not_october)), ncol = 2)
+horror_movie_matrix <- matrix(
+  c(
+    nrow(horror_october),
+    nrow(not_horror_october),
+    nrow(horror_not_october),
+    nrow(not_horror_not_october)
+  ),
+  ncol = 2
+)
+colnames(horror_movie_matrix) <- c("October", "Not October")
+rownames(horror_movie_matrix) <- c("Horror", "Not Horror")
 horror_movie_matrix
 
 chisq.test(horror_movie_matrix)
@@ -306,7 +364,15 @@ chisq.test(horror_movie_matrix)
 regularized_seasonal_movie_model <- train_set %>%
   group_by(movieId) %>%
   filter(n() > 1) %>%
-  summarize(regularized_movie_average = mean(rating - average_rating - ifelse(month(now()) == 10 & horror, 0.125, 0)))
+  summarize(
+    regularized_movie_average =
+      mean(rating -
+             average_rating -
+             ifelse(month(now()) == 10 &
+                      horror, 0.125, 0
+             )
+      )
+  )
 
 # Filter the test set of the movies and users removed previously
 regularized_seasonal_test_set <- test_set %>%
@@ -318,20 +384,34 @@ regularized_seasonal_test_set <- test_set %>%
 regularized_seasonal_predictions <- regularized_seasonal_test_set %>%
   left_join(regularized_seasonal_movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(regularized_seasonal_prediction = average_rating + regularized_movie_average + regularized_user_average) %>%
+  mutate(
+    regularized_seasonal_prediction =
+      average_rating +
+      regularized_movie_average +
+      regularized_user_average
+  ) %>%
   pull(regularized_seasonal_prediction)
 
 # Compare the predicted ratings in the test set
 # against the actual ratings in the test set
-regularized_seasonal_rmse <- caret::RMSE(regularized_seasonal_test_set$rating, regularized_seasonal_predictions)
+regularized_seasonal_rmse <- caret::RMSE(
+  regularized_seasonal_test_set$rating,
+  regularized_seasonal_predictions
+)
 regularized_seasonal_rmse
 
 # Print and save the RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Regularized With Seasonality Model", RMSE = regularized_seasonal_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Regularized With Seasonality Model",
+    RMSE = regularized_seasonal_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")
 
 # RecommenderLab
 # Convert a subset of the edx data set into a ratings matrix
@@ -429,7 +509,7 @@ data.frame(
 
 # Conclusion
 # Load in the edx data
-load("rda/final_holdout_test.rda")
+base::load("rda/final_holdout_test.rda")
 
 # Filter the final holdout test set
 # just like the regular test set
@@ -437,12 +517,19 @@ filtered_final_holdout_test <- final_holdout_test %>%
   semi_join(regularized_movie_model, by = "movieId") %>%
   semi_join(regularized_user_model, by = "userId")
 
-# Join the regularized movie model and the regularized user model to the final holdout test set to predict
+# Join the regularized movie model
+# and the regularized user model
+# to the final holdout test set to predict
 # the rating of movies in the final holdout test set
 final_predictions <- filtered_final_holdout_test %>%
   left_join(regularized_movie_model, by = "movieId") %>%
   left_join(regularized_user_model, by = "userId") %>%
-  mutate(final_prediction = average_rating + regularized_movie_average + regularized_user_average) %>%
+  mutate(
+    final_prediction =
+      average_rating +
+      regularized_movie_average +
+      regularized_user_average
+  ) %>%
   pull(final_prediction)
 
 # Compare the predicted ratings in the test set
@@ -451,8 +538,14 @@ final_rmse <- caret::RMSE(filtered_final_holdout_test$rating, final_predictions)
 final_rmse
 
 # Print and save the naive RMSE to a results variable
-rmse_results <- bind_rows(rmse_results, data.frame(method = "Final Model", RMSE = final_rmse))
+rmse_results <- bind_rows(
+  rmse_results,
+  data.frame(
+    method = "Final Model",
+    RMSE = final_rmse
+  )
+)
 rmse_results %>% knitr::kable()
 
 # Save the results to a RData file
-save(rmse_results, file = "rda/rmse_results.rda")
+base::save(rmse_results, file = "rda/rmse_results.rda")

@@ -34,8 +34,14 @@ if(!file.exists(movies_file))
   unzip(dl, str_sub(movies_file, 6), exdir = "data")
 
 # Read the contents of the "ratings.dat" file into a data frame
-ratings <- as.data.frame(str_split(read_lines(ratings_file), fixed("::"), simplify = TRUE),
-                         stringsAsFactors = FALSE)
+ratings <- as.data.frame(
+  str_split(
+    read_lines(ratings_file),
+    fixed("::"),
+    simplify = TRUE
+  ),
+  stringsAsFactors = FALSE
+)
 # Set the column names for the ratings data frame
 colnames(ratings) <- c("userId", "movieId", "rating", "timestamp")
 # Set the data types of the information in the ratings data frame
@@ -46,8 +52,14 @@ ratings <- ratings %>%
          timestamp = as.integer(timestamp))
 
 # Read the contents of the "movies.dat" file into a data frame
-movies <- as.data.frame(str_split(read_lines(movies_file), fixed("::"), simplify = TRUE),
-                        stringsAsFactors = FALSE)
+movies <- as.data.frame(
+  str_split(
+    read_lines(movies_file),
+    fixed("::"),
+    simplify = TRUE
+  ),
+  stringsAsFactors = FALSE
+)
 # Set the column names for the movies data frame
 colnames(movies) <- c("movieId", "title", "genres")
 # Set the data types of the information in the movies data frame
@@ -76,7 +88,7 @@ edx <- rbind(edx, removed)
 rm(dl, ratings, movies, test_index, temp, movielens, removed)
 
 # Save the edx data to an RData file
-save(edx, file = "rda/edx.rda")
+base::save(edx, file = "rda/edx.rda")
 
 # Save the final_holdout_test data to an RData file
-save(final_holdout_test, file = "rda/final_holdout_test.rda")
+base::save(final_holdout_test, file = "rda/final_holdout_test.rda")
