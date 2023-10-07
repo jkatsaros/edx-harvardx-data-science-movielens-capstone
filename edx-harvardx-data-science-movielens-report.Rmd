@@ -272,7 +272,7 @@ getModelInfo("glm")
 
 The `glm` in this instance stands for "Generalized Linear Model". The "Generalized Linear Model" doesn't have any tuning parameters I could use to tweak the underlying operations the `caret`[@caret] package is conducting for me. This means that using the `caret`[@caret] package for this capstone particularly taxing on my system. I will go into detail about this limitation later on in this report. For now, though, let us continue with the analysis and building of models.
 
-In this capstone, I will construct the following  models and evaluate how well each model makes predictions on movie recommendations within the MovieLens[@MovieLens] data:
+In this capstone, I will construct the following models and evaluate how well each model makes predictions on movie recommendations within the MovieLens[@MovieLens] data:
 
 1. Naive Model
 2. Movie Effects Model
