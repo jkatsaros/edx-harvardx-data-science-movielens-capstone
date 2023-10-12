@@ -99,8 +99,6 @@ base::save(edx, file = "rda/edx.rda")
 # Save the final_holdout_test data to an RData file
 base::save(final_holdout_test, file = "rda/final_holdout_test.rda")
 
-if (!require(renv))
-  install.packages("renv", repos = "http://cran.us.r-project.org")
 if (!require(tidyverse))
   install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 if (!require(caret))
@@ -112,15 +110,11 @@ if (!require(ggplot2))
 if (!require(recommenderlab))
   install.packages("recommenderlab", repos = "http://cran.us.r-project.org")
 
-library(renv)
 library(tidyverse)
 library(caret)
 library(lubridate)
 library(ggplot2)
 library(recommenderlab)
-
-# Take a snapshot
-renv::snapshot()
 
 # Load in the edx data
 base::load("rda/edx.rda")
